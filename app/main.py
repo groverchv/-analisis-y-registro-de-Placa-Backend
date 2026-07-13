@@ -10,12 +10,21 @@ from typing import AsyncGenerator
 
 import easyocr
 import sys
+import asyncio
+
+if sys.platform == 'win32':
+    asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
+
+import os
 from unittest.mock import MagicMock
 
 # MOCK MATPLOTLIB: Evitar error de compatibilidad C-extension en Python 3.14 Alpha
 # Supervision importa matplotlib solo para colores, que no estamos usando.
 sys.modules['matplotlib'] = MagicMock()
 sys.modules['matplotlib.pyplot'] = MagicMock()
+sys.modules['matplotlib.colors'] = MagicMock()
+sys.modules['matplotlib.patches'] = MagicMock()
+sys.modules['matplotlib.figure'] = MagicMock()
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware

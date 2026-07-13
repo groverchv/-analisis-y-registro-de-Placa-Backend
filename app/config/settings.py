@@ -3,13 +3,14 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 class Settings(BaseSettings):
     # App Settings
     APP_NAME: str = "Lector de Placas UAGRM"
-    DEBUG: bool = False
+    APP_VERSION: str = "1.0.0"
+    DEBUG: bool = True
     
     # CORS
     ALLOWED_ORIGINS: list[str] = ["http://localhost:5173", "http://localhost:3000"]
     
     # Database
-    DATABASE_URL: str = "postgresql+asyncpg://postgres:postgres@localhost:5432/alpr_db"
+    DATABASE_URL: str = "postgresql+psycopg://postgres:123456@localhost:5432/alpr_db"
     
     # Roboflow API configuration
     ROBOFLOW_API_KEY: str = ""
