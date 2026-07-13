@@ -1,0 +1,16 @@
+fastapi==0.115.*
+uvicorn[standard]==0.34.*
+python-multipart==0.0.*
+python-dotenv==1.1.*
+pydantic==2.*
+pydantic-settings==2.*
+supervision>=0.25.0
+inference-sdk>=0.30.0
+easyocr>=1.7
+opencv-python-headless>=4.9
+Pillow>=10.0
+numpy>=2.0.0
+matplotlib>=3.9.0
+SQLAlchemy>=2.0.0
+alembic>=1.13.0
+asyncpg>=0.29.0
