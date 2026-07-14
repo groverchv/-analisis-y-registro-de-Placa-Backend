@@ -9,8 +9,8 @@ class Settings(BaseSettings):
     # CORS
     ALLOWED_ORIGINS: list[str] = ["http://localhost:5173", "http://localhost:3000"]
     
-    # Database
-    DATABASE_URL: str = "postgresql+psycopg://postgres:123456@localhost:5432/alpr_db"
+    # Database (Global Neon Database)
+    DATABASE_URL: str = "postgresql+psycopg://neondb_owner:npg_Z5WMe3ICfrFx@ep-misty-recipe-adlghyw1-pooler.c-2.us-east-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require"
     
     # Roboflow API configuration
     ROBOFLOW_API_KEY: str = ""

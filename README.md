@@ -11,14 +11,11 @@ Bienvenido al Backend del Proyecto Lector de Placas UAGRM. Esta API está desarr
 
 ---
 
-## 1. Configurar la Base de Datos (PostgreSQL)
+## 1. Configurar la Base de Datos (¡Ya está en la Nube!)
 
-El equipo ha acordado utilizar credenciales estandarizadas para evitar problemas de configuración local:
-
-1. Instala PostgreSQL en tu máquina.
-2. Abre **pgAdmin 4**.
-3. Crea una base de datos nueva llamada exactamente: `alpr_db`
-4. Asegúrate de que la contraseña del superusuario `postgres` sea: `123456`
+Tu equipo ha decidido usar **Neon** para que la base de datos sea global y compartida por todos en tiempo real. 
+- **NO necesitas instalar PostgreSQL localmente.**
+- El código ya viene configurado para conectarse a la base de datos de producción automáticamente.
 
 ---
 
@@ -57,7 +54,7 @@ APP_NAME="Lector de Placas UAGRM"
 APP_VERSION="1.0.0"
 DEBUG=true
 ALLOWED_ORIGINS='["http://localhost:5173", "http://localhost:3000"]'
-DATABASE_URL=postgresql+psycopg://postgres:123456@localhost:5432/alpr_db
+DATABASE_URL=postgresql+psycopg://neondb_owner:npg_Z5WMe3ICfrFx@ep-misty-recipe-adlghyw1-pooler.c-2.us-east-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require
 
 # ROBOFLOW API KEY
 ROBOFLOW_API_KEY=tu_api_key_aqui
