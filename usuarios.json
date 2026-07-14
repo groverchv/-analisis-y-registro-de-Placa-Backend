@@ -1,0 +1,24 @@
+[
+  { "code": "221044108", "role": "ESTUDIANTE" },
+  { "code": "221044109", "role": "ESTUDIANTE" },
+  { "code": "221044110", "role": "ESTUDIANTE" },
+  { "code": "221044111", "role": "ESTUDIANTE" },
+  { "code": "221044112", "role": "ESTUDIANTE" },
+  { "code": "221044113", "role": "ESTUDIANTE" },
+  { "code": "221044114", "role": "ESTUDIANTE" },
+  { "code": "221044115", "role": "ESTUDIANTE" },
+  { "code": "221044116", "role": "ESTUDIANTE" },
+  { "code": "221044117", "role": "ESTUDIANTE" },
+
+  { "code": "221044118", "role": "DOCENTE" },
+  { "code": "221044119", "role": "DOCENTE" },
+  { "code": "221044120", "role": "DOCENTE" },
+  { "code": "221044121", "role": "DOCENTE" },
+  { "code": "221044122", "role": "DOCENTE" },
+
+  { "code": "221044123", "role": "ADMIN" },
+  { "code": "221044124", "role": "ADMIN" },
+  { "code": "221044125", "role": "ADMIN" },
+  { "code": "221044126", "role": "ADMIN" },
+  { "code": "221044127", "role": "ADMIN" }
+]

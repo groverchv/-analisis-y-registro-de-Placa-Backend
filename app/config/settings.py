@@ -11,6 +11,8 @@ class Settings(BaseSettings):
     
     # Database (Global Neon Database)
     DATABASE_URL: str = "postgresql+psycopg://neondb_owner:npg_Z5WMe3ICfrFx@ep-misty-recipe-adlghyw1-pooler.c-2.us-east-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require"
+    SECRET_KEY: str = "change-this-in-env"
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = 60
     
     # Roboflow API configuration
     ROBOFLOW_API_KEY: str = ""
