@@ -8,9 +8,16 @@ e incluye los routers de la API.
 from contextlib import asynccontextmanager
 from typing import AsyncGenerator
 
-import easyocr
 import sys
 import asyncio
+
+try:
+    import easyocr
+except ImportError as exc:  # pragma: no cover - depends on local environment
+    easyocr = None
+    EASYOCR_IMPORT_ERROR = exc
+else:
+    EASYOCR_IMPORT_ERROR = None
 
 if sys.platform == 'win32':
     asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
@@ -47,6 +54,12 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     # --- Inicio: precargar el lector de EasyOCR ---
     # EasyOCR descarga modelos en la primera ejecución; hacerlo aquí
     # garantiza que la primera request no sufra latencia extra.
+    if easyocr is None:
+        raise RuntimeError(
+            "easyocr no está instalado en el entorno actual. "
+            "Instala las dependencias del backend antes de iniciar la API."
+        ) from EASYOCR_IMPORT_ERROR
+
     app.state.ocr_reader = easyocr.Reader(
         ["es", "en"],  # Español e inglés para mejor cobertura de caracteres
         gpu=False,

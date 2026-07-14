@@ -1,4 +1,5 @@
 from fastapi import APIRouter, UploadFile, File, HTTPException, Request
+from fastapi.concurrency import run_in_threadpool
 from fastapi.responses import JSONResponse
 from app.schemas.plate import PlateAnalysisResponse
 from app.ai.pipeline import analyze_plate
@@ -29,13 +30,19 @@ async def analyze_plate_endpoint(request: Request, file: UploadFile = File(...))
         )
     
     # Ejecutar pipeline AI
-    result_dict = analyze_plate(image_bytes, ocr_reader=request.app.state.ocr_reader)
-    
+    result_dict = await run_in_threadpool(
+        analyze_plate,
+        image_bytes,
+        request.app.state.ocr_reader,
+    )
+
     if result_dict.get("status") == "ERROR":
-        # Devolver error procesado gracefully
-        return PlateAnalysisResponse(
-            status="ERROR",
-            message=result_dict.get("message", "Error desconocido durante el análisis.")
+        return JSONResponse(
+            status_code=int(result_dict.get("http_status", 422)),
+            content=PlateAnalysisResponse(
+                status="ERROR",
+                message=result_dict.get("message", "Error desconocido durante el análisis."),
+            ).model_dump(),
         )
     
     return PlateAnalysisResponse(**result_dict)
