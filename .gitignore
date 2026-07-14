@@ -1,0 +1,12 @@
+.env
+.venv/
+.runtime/
+.tmp/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+uploads/*
+!uploads/vehicles/
+!uploads/vehicles/**
+.DS_Store
