@@ -1,5 +1,3 @@
-import json
-from pathlib import Path
 from uuid import UUID
 
 import jwt
@@ -10,7 +8,7 @@ from sqlalchemy.future import select
 
 from app.config.settings import settings
 from app.core.security import ALGORITHM, create_access_token, hash_password, verify_password
-from app.db.models import AuthUser, RecordStatusEnum, RoleEnum, UniversityPerson
+from app.db.models import AuthRoleEnum, AuthUser, RecordStatusEnum, RoleEnum, UniversityPerson
 from app.db.session import get_db
 from app.schemas.auth import (
     AuthResponse,
@@ -21,81 +19,69 @@ from app.schemas.auth import (
 )
 
 router = APIRouter()
-USERS_FILE = Path(__file__).resolve().parents[3] / "usuarios.json"
 
 
-def normalize_catalog_role(raw_role: str) -> tuple[AuthRoleEnum, RoleEnum]:
-    role = raw_role.strip().upper()
+def normalize_selected_role(raw_role: str) -> tuple[AuthRoleEnum, RoleEnum, str]:
+    role = (raw_role or "").strip().upper()
     role_map = {
-        "ADMIN": (AuthRoleEnum.ADMIN, RoleEnum.ADMIN),
-        "ADMINISTRATIVO": (AuthRoleEnum.ADMIN, RoleEnum.ADMIN),
-        "OPERATOR": (AuthRoleEnum.OPERATOR, RoleEnum.STUDENT),
-        "OPERADOR": (AuthRoleEnum.OPERATOR, RoleEnum.STUDENT),
-        "STUDENT": (AuthRoleEnum.OPERATOR, RoleEnum.STUDENT),
-        "ESTUDIANTE": (AuthRoleEnum.OPERATOR, RoleEnum.STUDENT),
-        "TEACHER": (AuthRoleEnum.OPERATOR, RoleEnum.TEACHER),
-        "DOCENTE": (AuthRoleEnum.OPERATOR, RoleEnum.TEACHER),
+        "ADMIN": (AuthRoleEnum.ADMIN, RoleEnum.ADMIN, "ADMINISTRATIVO"),
+        "ADMINISTRATIVE": (AuthRoleEnum.ADMIN, RoleEnum.ADMIN, "ADMINISTRATIVO"),
+        "ADMINISTRATIVO": (AuthRoleEnum.ADMIN, RoleEnum.ADMIN, "ADMINISTRATIVO"),
+        "OPERATOR": (AuthRoleEnum.OPERATOR, RoleEnum.STUDENT, "ESTUDIANTE"),
+        "STUDENT": (AuthRoleEnum.OPERATOR, RoleEnum.STUDENT, "ESTUDIANTE"),
+        "ESTUDIANTE": (AuthRoleEnum.OPERATOR, RoleEnum.STUDENT, "ESTUDIANTE"),
+        "TEACHER": (AuthRoleEnum.OPERATOR, RoleEnum.TEACHER, "DOCENTE"),
+        "DOCENTE": (AuthRoleEnum.OPERATOR, RoleEnum.TEACHER, "DOCENTE"),
     }
     if role not in role_map:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"El rol '{raw_role}' no es valido dentro de usuarios.json.",
+            detail="Rol invalido. Usa Administrativo, Estudiante o Docente.",
         )
     return role_map[role]
 
 
-def get_catalog_user(code: str) -> tuple[AuthRoleEnum, RoleEnum]:
-    if not USERS_FILE.exists():
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="No existe el archivo usuarios.json para validar registros.",
-        )
+def normalize_faculty(role: RoleEnum, faculty: str | None) -> str | None:
+    if role != RoleEnum.STUDENT:
+        return None
+    value = (faculty or "").strip()
+    return value or None
 
-    try:
-        users = json.loads(USERS_FILE.read_text(encoding="utf-8"))
-    except json.JSONDecodeError:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="El archivo usuarios.json no tiene un formato JSON valido.",
-        )
 
-    normalized_code = code.strip()
-    match = next(
-        (
-            item
-            for item in users
-            if str(item.get("code", "")).strip() == normalized_code
-        ),
-        None,
-    )
-    if not match:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="El registro no existe en usuarios.json. No se puede crear el perfil.",
-        )
+def get_catalog_role_label(role: AuthRoleEnum) -> str:
+    role_map = {
+        AuthRoleEnum.ADMIN: "ADMINISTRATIVO",
+        AuthRoleEnum.OPERATOR: "ESTUDIANTE",
+    }
+    return role_map.get(role, role.value)
 
-    if not match.get("role"):
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="El registro existe en usuarios.json pero no tiene rol asignado.",
-        )
 
-    return normalize_catalog_role(str(match["role"]))
+def get_person_role_label(person: UniversityPerson | None, auth_role: AuthRoleEnum) -> str:
+    if person and person.role == RoleEnum.TEACHER:
+        return "DOCENTE"
+    if person and person.role == RoleEnum.ADMIN:
+        return "ADMINISTRATIVO"
+    if person and person.role == RoleEnum.STUDENT:
+        return "ESTUDIANTE"
+    return get_catalog_role_label(auth_role)
 
 
 def build_user_response(user: AuthUser) -> AuthUserResponse:
     person = user.university_person
+    phone = user.phone or (person.contact_info if person else None)
     return AuthUserResponse(
         id=user.id,
         full_name=user.full_name,
         email=user.email,
+        phone=phone,
         role=user.role,
+        catalog_role=get_person_role_label(person, user.role),
         status=user.status,
         is_active=user.is_active,
         university_person_id=user.university_person_id,
         code=person.code if person else None,
         faculty=person.faculty if person else None,
-        contact_info=person.contact_info if person else None,
+        contact_info=phone,
         created_at=user.created_at,
         updated_at=user.updated_at,
     )
@@ -158,7 +144,9 @@ async def register_user(
             detail="Este correo ya se encuentra registrado.",
         )
 
-    auth_role, person_role = get_catalog_user(user_in.code)
+    auth_role, person_role, _ = normalize_selected_role(user_in.role)
+    faculty_value = normalize_faculty(person_role, user_in.faculty)
+    phone_value = (user_in.phone or user_in.contact_info).strip()
 
     owner_result = await db.execute(
         select(UniversityPerson).where(UniversityPerson.code == user_in.code.strip())
@@ -168,8 +156,8 @@ async def register_user(
     if university_person:
         university_person.full_name = user_in.full_name.strip()
         university_person.role = person_role
-        university_person.faculty = user_in.faculty
-        university_person.contact_info = user_in.contact_info
+        university_person.faculty = faculty_value
+        university_person.contact_info = phone_value
         university_person.is_active = True
         university_person.status = RecordStatusEnum.ACTIVE
     else:
@@ -177,8 +165,8 @@ async def register_user(
             code=user_in.code.strip(),
             role=person_role,
             full_name=user_in.full_name.strip(),
-            faculty=user_in.faculty,
-            contact_info=user_in.contact_info,
+            faculty=faculty_value,
+            contact_info=phone_value,
             status=RecordStatusEnum.ACTIVE,
             is_active=True,
         )
@@ -188,6 +176,7 @@ async def register_user(
     user = AuthUser(
         full_name=user_in.full_name.strip(),
         email=user_in.email.lower().strip(),
+        phone=phone_value,
         password_hash=hash_password(user_in.password),
         role=auth_role,
         status=RecordStatusEnum.ACTIVE,
@@ -289,10 +278,13 @@ async def update_my_profile(
             detail="Ese registro ya pertenece a otra persona.",
         )
 
-    auth_role, person_role = get_catalog_user(profile_in.code)
+    auth_role, person_role, _ = normalize_selected_role(profile_in.role)
+    faculty_value = normalize_faculty(person_role, profile_in.faculty)
+    phone_value = (profile_in.phone or profile_in.contact_info).strip()
 
     current_user.full_name = profile_in.full_name.strip()
     current_user.email = profile_in.email.lower().strip()
+    current_user.phone = phone_value
     current_user.role = auth_role
     if profile_in.password:
         current_user.password_hash = hash_password(profile_in.password)
@@ -309,8 +301,8 @@ async def update_my_profile(
             code=profile_in.code.strip(),
             role=person_role,
             full_name=profile_in.full_name.strip(),
-            faculty=profile_in.faculty,
-            contact_info=profile_in.contact_info,
+            faculty=faculty_value,
+            contact_info=phone_value,
             status=RecordStatusEnum.ACTIVE,
             is_active=True,
         )
@@ -321,8 +313,8 @@ async def update_my_profile(
         person.code = profile_in.code.strip()
         person.role = person_role
         person.full_name = profile_in.full_name.strip()
-        person.faculty = profile_in.faculty
-        person.contact_info = profile_in.contact_info
+        person.faculty = faculty_value
+        person.contact_info = phone_value
         person.is_active = True
         person.status = RecordStatusEnum.ACTIVE
 

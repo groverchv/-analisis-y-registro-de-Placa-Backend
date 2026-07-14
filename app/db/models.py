@@ -71,6 +71,7 @@ class AuthUser(Base):
     id = Column(Uuid, primary_key=True, default=uuid.uuid4)
     full_name = Column(String, nullable=False)
     email = Column(String, unique=True, index=True, nullable=False)
+    phone = Column(String, nullable=True)
     password_hash = Column(String, nullable=False)
     role = Column(Enum(AuthRoleEnum), default=AuthRoleEnum.OPERATOR, nullable=False)
     status = Column(Enum(RecordStatusEnum), default=RecordStatusEnum.ACTIVE, nullable=False)
